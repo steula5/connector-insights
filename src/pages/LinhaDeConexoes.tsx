@@ -46,7 +46,8 @@ export default function LinhaDeConexoes() {
   const [sales, setSales] = useState<Array<{ code: string; unit: string; qty: number }>>([]);
   const [targetCodes, setTargetCodes] = useState<string[]>([]);
   const [overrides, setOverrides] = useState<Record<string, number>>({});
-  
+  const [salesBuffer, setSalesBuffer] = useState<ArrayBuffer | null>(null);
+
   const [items, setItems] = useState<SaleItem[]>(() => {
     const d = new Date();
     const data = loadLinhaHistory()[String(d.getFullYear())]?.[String(d.getMonth() + 1)];
@@ -57,43 +58,48 @@ export default function LinhaDeConexoes() {
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
   const [selectedMonth, setSelectedMonth] = useState(String(new Date().getMonth() + 1));
 
-  const recalculate = useCallback((s: typeof sales, codes: string[], ov: Record<string, number>) => {
-    if (s.length) {
-      const result = processLinhaConexoes(s, codes, ov);
-      setItems(result);
-      return result;
-    }
-    return [];
-  }, []);
-
   const handleSalesFile = useCallback((buf: ArrayBuffer) => {
     try {
       const parsed = parseLinhaVendas(buf);
       setSales(parsed);
-      recalculate(parsed, targetCodes, overrides);
-      toast.success(`${parsed.length} registros carregados do Relatório de Vendas`);
-      setSection('dashboard');
+      setSalesBuffer(buf);
+      if (targetCodes.length > 0) {
+        const result = processLinhaConexoes(parsed, targetCodes, overrides);
+        setItems(result);
+        toast.success(`${parsed.length} registros cruzados com ${targetCodes.length} códigos`);
+        setSection('dashboard');
+      } else {
+        toast.info('Relatório de vendas carregado. Agora envie a lista de códigos.');
+      }
     } catch { toast.error('Erro ao ler arquivo de Vendas'); }
-  }, [targetCodes, overrides, recalculate]);
+  }, [targetCodes, overrides]);
 
   const handleCodesFile = useCallback((buf: ArrayBuffer) => {
     try {
       const parsedCodes = parseLinhaCodes(buf);
       setTargetCodes(parsedCodes);
-      recalculate(sales, parsedCodes, overrides);
-      toast.success(`${parsedCodes.length} códigos carregados com sucesso`);
+      if (sales.length > 0) {
+        const result = processLinhaConexoes(sales, parsedCodes, overrides);
+        setItems(result);
+        toast.success(`${parsedCodes.length} códigos cruzados com ${sales.length} vendas`);
+        setSection('dashboard');
+      } else {
+        toast.success(`${parsedCodes.length} códigos carregados. Agora envie o relatório de vendas.`);
+      }
     } catch {
       toast.error('Erro ao ler arquivo de Códigos');
     }
-  }, [sales, overrides, recalculate]);
+  }, [sales, overrides]);
+
 
   const handleQtyChange = useCallback((code: string, newQty: number) => {
     setOverrides(prev => {
       const next = { ...prev, [code]: newQty };
-      recalculate(sales, targetCodes, next);
+      const result = processLinhaConexoes(sales, targetCodes, next);
+      setItems(result);
       return next;
     });
-  }, [sales, targetCodes, recalculate]);
+  }, [sales, targetCodes]);
 
   const handleSaveMonth = useCallback(() => {
     if (!items.length) return;
