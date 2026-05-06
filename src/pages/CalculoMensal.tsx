@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import {
   BarChart3, Upload, Table2, PieChart, History, Download, Settings, Package,
-  TrendingUp, Hash, Award, Activity
+  TrendingUp, Hash, Award, Activity, ArrowDown
 } from 'lucide-react';
 import { SidebarProvider, SidebarTrigger, Sidebar, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 import { KPICard } from '@/components/dashboard/KPICard';
@@ -14,6 +14,7 @@ import { buildExportHtml } from '@/lib/export-html';
 import { loadHistory, saveMonthData, loadFamilyImages, saveFamilyImages, exportHistoryJSON, importHistoryJSON } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { SaleItem, ConnectorRef, HistoryData, FamilyImage, MonthData } from '@/types/sales';
 import { getFamily, MONTH_NAMES } from '@/types/sales';
 import { toast } from 'sonner';
@@ -31,15 +32,23 @@ const NAV = [
 ];
 
 export default function Index() {
-  const [section, setSection] = useState<Section>('upload');
+  const [section, setSection] = useState<Section>(() => {
+    const d = new Date();
+    return loadHistory()[String(d.getFullYear())]?.[String(d.getMonth() + 1)] ? 'dashboard' : 'upload';
+  });
   const [sales, setSales] = useState<Array<{ code: string; unit: string; qty: number }>>([]);
   const [refs, setRefs] = useState<ConnectorRef[]>([]);
   const [overrides, setOverrides] = useState<Record<string, number>>({});
-  const [items, setItems] = useState<SaleItem[]>([]);
+  const [items, setItems] = useState<SaleItem[]>(() => {
+    const d = new Date();
+    const data = loadHistory()[String(d.getFullYear())]?.[String(d.getMonth() + 1)];
+    return data ? data.items : [];
+  });
   const [history, setHistory] = useState<HistoryData>(loadHistory);
   const [familyImages, setFamilyImages] = useState<FamilyImage>(loadFamilyImages);
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
   const [selectedMonth, setSelectedMonth] = useState(String(new Date().getMonth() + 1));
+  const [isReturnsModalOpen, setIsReturnsModalOpen] = useState(false);
 
   const recalculate = useCallback((s: typeof sales, r: ConnectorRef[], ov: Record<string, number>) => {
     if (s.length && r.length) {
@@ -63,11 +72,13 @@ export default function Index() {
   const handleRefsFile = useCallback((buf: ArrayBuffer) => {
     try {
       const parsed = parseCalculoMensal(buf);
-      setRefs(parsed);
-      recalculate(sales, parsed, overrides);
-      toast.success(`${parsed.length} conectores carregados da planilha base`);
+      setRefs(parsed.refs);
+      recalculate(sales, parsed.refs, overrides);
+      toast.success(`${parsed.loadedRefs} conectores carregados da planilha base (de ${parsed.detectedCodeRows} linhas com código, ${parsed.totalRows} linhas totais)`);
       if (sales.length) setSection('dashboard');
-    } catch { toast.error('Erro ao ler arquivo Cálculo Mensal'); }
+    } catch {
+      toast.error('Erro ao ler arquivo Cálculo Mensal');
+    }
   }, [sales, overrides, recalculate]);
 
   const handleQtyChange = useCallback((code: string, newQty: number) => {
@@ -150,7 +161,48 @@ export default function Index() {
   }, []);
 
   const totalUN = useMemo(() => items.reduce((s, i) => s + i.totalUN, 0), [items]);
+  const returnedItems = useMemo(() => items.filter(i => i.quantity < 0), [items]);
+  const totalReturns = returnedItems.length;
+  const totalReturnedUN = useMemo(
+    () => returnedItems.reduce((s, i) => s + Math.abs(i.totalUN), 0),
+    [returnedItems]
+  );
   const families = useMemo(() => [...new Set(items.map(i => i.family))].sort(), [items]);
+
+  const handlePrintPDF = useCallback(() => {
+    const tableHtml = document.getElementById('returns-table-container')?.innerHTML || '';
+    const win = window.open('', '', 'width=900,height=650');
+    if (!win) return;
+    const monthName = MONTH_NAMES[Number(selectedMonth) - 1];
+    win.document.write(`
+      <html>
+        <head>
+          <title>Devoluções - ${monthName} ${selectedYear}</title>
+          <style>
+            body { font-family: system-ui, -apple-system, sans-serif; padding: 30px; color: #0f172a; }
+            h2 { margin-top: 0; font-size: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9rem; }
+            th, td { border-bottom: 1px solid #e2e8f0; padding: 10px; text-align: left; }
+            th { background-color: #f8fafc; font-weight: 600; color: #64748b; text-transform: uppercase; font-size: 0.8rem; }
+            .text-right { text-align: right; }
+            .text-destructive { color: #dc2626; }
+            .font-mono { font-family: ui-monospace, monospace; }
+            .font-medium { font-weight: 500; }
+            .font-bold { font-weight: 700; }
+            .text-muted-foreground { color: #64748b; }
+          </style>
+        </head>
+        <body>
+          <h2>Relatório de Devoluções (${monthName} ${selectedYear})</h2>
+          ${tableHtml}
+          <script>
+            setTimeout(() => { window.print(); window.close(); }, 250);
+          </script>
+        </body>
+      </html>
+    `);
+    win.document.close();
+  }, [selectedMonth, selectedYear]);
   const topCodes = useMemo(() => items.slice(0, 5).map(i => i.code), [items]);
   const years = useMemo(() => {
     const yrs = new Set(Object.keys(history));
@@ -173,8 +225,8 @@ export default function Index() {
           <SidebarContent className="pt-4">
             <div className="mb-6 px-4">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-bold">CI</div>
-                <span className="text-sm font-bold text-sidebar-foreground group-data-[collapsible=icon]:hidden">ConnectorIQ</span>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-bold">CRV</div>
+                <span className="text-sm font-bold text-sidebar-foreground group-data-[collapsible=icon]:hidden">Calculadora para Resumo de Vendas</span>
               </div>
             </div>
             <SidebarGroup>
@@ -202,16 +254,24 @@ export default function Index() {
         <div className="flex flex-1 flex-col">
           <header className="flex h-14 items-center gap-3 border-b px-4">
             <SidebarTrigger />
-            <h1 className="text-lg font-bold">ConnectorIQ</h1>
+            <h1 className="text-lg font-bold">Calculadora para Resumo de Vendas</h1>
             <span className="text-xs text-muted-foreground">Dashboard de Vendas de Conectores</span>
             <div className="ml-auto flex items-center gap-2">
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <Select value={selectedMonth} onValueChange={(val) => {
+                setSelectedMonth(val);
+                const data = history[selectedYear]?.[val];
+                if (data) setItems(data.items);
+              }}>
                 <SelectTrigger className="h-8 w-28 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {MONTH_NAMES.map((m, i) => <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <Select value={selectedYear} onValueChange={(val) => {
+                setSelectedYear(val);
+                const data = history[val]?.[selectedMonth];
+                if (data) setItems(data.items);
+              }}>
                 <SelectTrigger className="h-8 w-20 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
@@ -254,7 +314,14 @@ export default function Index() {
               <div className="space-y-6">
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                   <KPICard title="Total UN" value={totalUN} icon={TrendingUp} trend={growth} />
-                  <KPICard title="SKUs Vendidos" value={items.length} icon={Hash} />
+                  <KPICard 
+                    title="Devoluções" 
+                    value={totalReturns} 
+                    icon={ArrowDown} 
+                    subtitle={`${totalReturnedUN.toLocaleString('pt-BR')} UN devolvidos`} 
+                    onClick={() => totalReturns > 0 && setIsReturnsModalOpen(true)}
+                    className={totalReturns > 0 ? "border-danger/30 bg-danger/5" : ""}
+                  />
                   <KPICard title="Item Top" value={items[0]?.code || '—'} icon={Award} subtitle={items[0] ? `${items[0].totalUN.toLocaleString('pt-BR')} UN` : undefined} />
                   <KPICard title="Média/Item" value={items.length ? Math.round(totalUN / items.length) : 0} icon={Activity} />
                   <KPICard title="Famílias" value={families.length} icon={Package} />
@@ -309,6 +376,14 @@ export default function Index() {
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={handleImportJSON}>Importar JSON</Button>
                   <Button size="sm" variant="outline" onClick={handleExportJSON}>Exportar JSON</Button>
+                  <Button size="sm" variant="destructive" className="ml-auto" onClick={() => {
+                    if (confirm('Tem certeza que deseja apagar TODOS os dados e histórico? Esta ação não pode ser desfeita.')) {
+                      import('@/lib/storage').then(({ saveHistory }) => saveHistory({}));
+                      setHistory({});
+                      setItems([]);
+                      toast.success('Todos os dados foram apagados.');
+                    }
+                  }}>Excluir Todos os Dados</Button>
                 </div>
                 {Object.keys(history).length === 0 ? (
                   <p className="text-sm text-muted-foreground">Nenhum histórico salvo ainda.</p>
@@ -370,6 +445,47 @@ export default function Index() {
           </main>
         </div>
       </div>
+
+      <Dialog open={isReturnsModalOpen} onOpenChange={setIsReturnsModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex flex-row items-center justify-between">
+            <div>
+              <DialogTitle>Itens Devolvidos ({MONTH_NAMES[Number(selectedMonth) - 1]} {selectedYear})</DialogTitle>
+              <DialogDescription>Listagem detalhada das devoluções do mês selecionado</DialogDescription>
+            </div>
+            <Button size="sm" variant="outline" className="mr-6 flex items-center gap-2" onClick={handlePrintPDF}>
+              <Download className="h-4 w-4" /> Baixar PDF
+            </Button>
+          </DialogHeader>
+          <div id="returns-table-container" className="flex-1 overflow-auto mt-2">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-muted sticky top-0">
+                <tr>
+                  <th className="p-3 font-semibold text-muted-foreground">Código</th>
+                  <th className="p-3 font-semibold text-muted-foreground">Família</th>
+                  <th className="p-3 font-semibold text-muted-foreground text-right">Qtd Origem</th>
+                  <th className="p-3 font-semibold text-muted-foreground text-right">QTY/BAG</th>
+                  <th className="p-3 font-semibold text-muted-foreground text-right">Total UN</th>
+                </tr>
+              </thead>
+              <tbody>
+                {returnedItems.map((item, i) => (
+                  <tr key={i} className="border-b transition-colors hover:bg-muted/30">
+                    <td className="p-3 font-mono font-medium">{item.code}</td>
+                    <td className="p-3 text-muted-foreground">{item.family}</td>
+                    <td className="p-3 text-right text-destructive font-mono">{item.quantity.toLocaleString('pt-BR')}</td>
+                    <td className="p-3 text-right text-muted-foreground font-mono">{item.qtyPerBag}</td>
+                    <td className="p-3 text-right text-destructive font-mono font-bold">{item.totalUN.toLocaleString('pt-BR')}</td>
+                  </tr>
+                ))}
+                {returnedItems.length === 0 && (
+                  <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Nenhuma devolução registrada.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }

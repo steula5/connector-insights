@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 const modules = [
   {
     id: 'calculo-mensal',
-    title: 'Cálculo Mensal de Vendas',
-    subtitle: 'Conexões Instantâneas',
+    title: 'Cálculo de Conexões Instantâneas',
+    subtitle: 'Painel Completo',
     description: 'Automatize a conversão de vendas SC → UN, cruzamento de dados e geração de relatórios mensais.',
     icon: Calculator,
     path: '/calculo-mensal',
@@ -14,37 +14,26 @@ const modules = [
     ready: true,
   },
   {
-    id: 'estoque',
-    title: 'Controle de Estoque',
-    subtitle: 'Em breve',
-    description: 'Gestão de estoque de conectores com alertas de reposição e rastreamento.',
+    id: 'linha-conexoes',
+    title: 'Linha de Conexões',
+    subtitle: 'Conexões Instantâneas',
+    description: 'Soma rápida de quantidades de códigos padrões para conexões.',
     icon: Package,
-    path: '#',
-    color: 'from-emerald-500/10 to-green-500/10',
-    iconColor: 'text-emerald-500/50',
-    ready: false,
+    path: '/linhadeconexoes',
+    color: 'from-emerald-500/20 to-green-500/20',
+    iconColor: 'text-emerald-500',
+    ready: true,
   },
   {
-    id: 'relatorios',
-    title: 'Relatórios Gerenciais',
+    id: 'linha-espirais',
+    title: 'Linha de Espirais e Tubos PU',
     subtitle: 'Em breve',
-    description: 'Relatórios consolidados de performance de vendas por período e região.',
-    icon: BarChart3,
-    path: '#',
-    color: 'from-violet-500/10 to-purple-500/10',
-    iconColor: 'text-violet-500/50',
-    ready: false,
-  },
-  {
-    id: 'config',
-    title: 'Configurações',
-    subtitle: 'Em breve',
-    description: 'Configurações gerais do sistema, usuários e preferências.',
-    icon: Settings,
-    path: '#',
-    color: 'from-orange-500/10 to-amber-500/10',
-    iconColor: 'text-orange-500/50',
-    ready: false,
+    description: 'Painel focado no cálculo e relatório da linha de espirais e tubos de poliuretano.',
+    icon: Package,
+    path: '/linha-espirais',
+    color: 'from-orange-500/20 to-amber-500/20',
+    iconColor: 'text-orange-500',
+    ready: true,
   },
 ];
 
@@ -56,10 +45,10 @@ export default function Home() {
       <header className="border-b bg-card/50 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-6 py-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-sm">
-            CI
+            CRV
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">ConnectorIQ</h1>
+            <h1 className="text-xl font-bold tracking-tight">Calculadora para Resumo de Vendas</h1>
             <p className="text-xs text-muted-foreground">Sistema de Gestão Interna</p>
           </div>
         </div>

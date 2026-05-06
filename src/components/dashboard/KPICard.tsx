@@ -8,11 +8,19 @@ interface KPICardProps {
   subtitle?: string;
   trend?: number;
   className?: string;
+  onClick?: () => void;
 }
 
-export function KPICard({ title, value, icon: Icon, subtitle, trend, className }: KPICardProps) {
+export function KPICard({ title, value, icon: Icon, subtitle, trend, className, onClick }: KPICardProps) {
   return (
-    <div className={cn('rounded-xl border bg-card p-5 shadow-sm transition-shadow hover:shadow-md', className)}>
+    <div 
+      onClick={onClick}
+      className={cn(
+        'rounded-xl border bg-card p-5 shadow-sm transition-all',
+        onClick ? 'cursor-pointer hover:shadow-md hover:bg-muted/30 active:scale-[0.98]' : 'hover:shadow-md',
+        className
+      )}
+    >
       <div className="flex items-start justify-between">
         <div className="space-y-1">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{title}</p>

@@ -1,0 +1,153 @@
+import * as XLSX from 'xlsx';
+import type { SaleItem } from '@/types/sales';
+import { getFamily } from '@/types/sales';
+
+export const DEFAULT_LINHA_CODES = [
+  '340', '336', '337', '338', '339',
+  'U 1/4', 'U 5/16', 'U 3/8', 'U 1/2',
+  'EFMB 1/4', 'EFMB 5/16', 'EFMB 3/8', 'EFMB 1/2',
+  'EFMD 1/4', 'EFMD 5/16', 'EFMD 3/8', 'EFMD 1/2',
+  'EFFB 1/4', 'EFFB 5/16', 'EFFB 3/8',
+  'UC 1/2', 'ECD 1/2', 'N 1/4', 'N 1/2',
+  'NRDB', 'BRDB', '377',
+  'TEE 1/4', 'TEE 5/16', 'TEE 3/8', 'TEE 1/2',
+  'EG 1/4', 'EG 5/16', 'EG 3/8'
+];
+
+function parseBrNumber(val: unknown): number {
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    let s = val.trim();
+    let isNegative = false;
+    if (s.startsWith('(') && s.endsWith(')')) {
+      isNegative = true;
+      s = s.slice(1, -1).trim();
+    } else if (s.startsWith('-')) {
+      isNegative = true;
+      s = s.slice(1).trim();
+    }
+    const cleaned = s.replace(/\./g, '').replace(',', '.');
+    const n = Number(cleaned);
+    if (isNaN(n)) return 0;
+    return isNegative ? -n : n;
+  }
+  return 0;
+}
+
+export function parseLinhaVendas(buffer: ArrayBuffer): Array<{ code: string; unit: string; qty: number }> {
+  const wb = XLSX.read(buffer, { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
+  const results: Array<{ code: string; unit: string; qty: number }> = [];
+
+  let startRow = 0;
+  let codeCol = 0;
+  let unitCol = 5;
+  let qtyCol = 7;
+  for (let i = 0; i < Math.min(rows.length, 15); i++) {
+    const row = rows[i];
+    if (!row) continue;
+    for (let j = 0; j < row.length; j++) {
+      const cell = String(row[j] ?? '').trim().toLowerCase();
+      if (cell === 'código' || cell === 'codigo') {
+        startRow = i + 1;
+        codeCol = j;
+      } else if (cell === 'un') {
+        unitCol = j;
+      } else if (cell === 'quantidade' || cell === 'qtd' || cell === 'qty' || cell === 'qtde.') {
+        qtyCol = j;
+      }
+    }
+    if (startRow > 0) break;
+  }
+  
+  if (startRow === 0) startRow = 4;
+
+  for (let i = startRow; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row) continue;
+    const code = String(row[codeCol] ?? '').trim();
+    const unitRaw = String(row[unitCol] ?? '').trim().toUpperCase();
+    const qty = parseBrNumber(row[qtyCol]);
+    
+    if (code && qty !== 0) {
+      results.push({ code, unit: unitRaw || 'UN', qty });
+    }
+  }
+  return results;
+}
+
+export function parseLinhaCodes(buffer: ArrayBuffer): string[] {
+  const wb = XLSX.read(buffer, { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
+  const codes: string[] = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || !row[0]) continue;
+    const cell = String(row[0]).trim();
+    if (cell.toLowerCase() === 'código' || cell.toLowerCase() === 'codigo') continue;
+    if (cell) codes.push(cell);
+  }
+  
+  return codes.length > 0 ? codes : DEFAULT_LINHA_CODES;
+}
+
+export function generateLinhaCodesTemplate(): void {
+  const data = [['Código']];
+  DEFAULT_LINHA_CODES.forEach(code => data.push([code]));
+  
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Padrões');
+  XLSX.writeFile(wb, 'padroes-linha-conexoes.xlsx');
+}
+
+export function processLinhaConexoes(
+  sales: Array<{ code: string; unit: string; qty: number }>,
+  targetCodes: string[],
+  overrides: Record<string, number> = {}
+): SaleItem[] {
+  const itemsMap = new Map<string, SaleItem>();
+
+  for (const sale of sales) {
+    if (targetCodes.includes(sale.code)) {
+      // Allow override qty or use parsed qty
+      const finalQty = overrides[sale.code] !== undefined ? overrides[sale.code] : sale.qty;
+      
+      if (itemsMap.has(sale.code)) {
+        const existing = itemsMap.get(sale.code)!;
+        existing.quantity += finalQty;
+        existing.totalUN += finalQty;
+      } else {
+        itemsMap.set(sale.code, {
+          code: sale.code,
+          unitOrigin: sale.unit,
+          quantity: finalQty,
+          qtyPerBag: 1, // Não utilizamos qtyPerBag aqui, cada item é 1 UN
+          totalUN: finalQty,
+          family: getFamily(sale.code),
+        });
+      }
+    }
+  }
+
+  // Converter para array e adicionar os targetCodes que vieram zerados
+  const items = Array.from(itemsMap.values());
+  
+  for (const code of targetCodes) {
+    if (!itemsMap.has(code)) {
+      items.push({
+        code,
+        unitOrigin: 'UN',
+        quantity: 0,
+        qtyPerBag: 1,
+        totalUN: 0,
+        family: getFamily(code),
+      });
+    }
+  }
+
+  return items.sort((a, b) => b.totalUN - a.totalUN);
+}

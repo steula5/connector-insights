@@ -29,6 +29,32 @@ export interface HistoryData {
   };
 }
 
+export interface EspiralItem {
+  code: string;
+  description: string;
+  type: 'ESPIRAL' | 'TUBO PU' | 'OUTROS';
+  unit: string;
+  qty: number;
+  lengthPerUnit: number;
+  totalLength: number;
+}
+
+export interface EspiraisMonthData {
+  year: number;
+  month: number;
+  items: EspiralItem[];
+  totalLength: number;
+  totalSKUs: number;
+  topItem: string;
+  importedAt: string;
+}
+
+export interface EspiraisHistoryData {
+  [year: string]: {
+    [month: string]: EspiraisMonthData;
+  };
+}
+
 export interface FamilyImage {
   [prefix: string]: string; // base64 data URL
 }

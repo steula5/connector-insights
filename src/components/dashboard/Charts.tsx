@@ -143,12 +143,14 @@ export function ShareChart({ items }: { items: SaleItem[] }) {
   const data = useMemo(() => {
     const map = new Map<string, number>();
     items.forEach(i => map.set(i.family, (map.get(i.family) || 0) + i.totalUN));
-    const total = items.reduce((s, i) => s + i.totalUN, 0);
+    const total = Array.from(map.values()).filter(v => v > 0).reduce((s, v) => s + v, 0);
     return Array.from(map, ([name, value]) => ({
       name,
-      value,
-      pct: total > 0 ? ((value / total) * 100).toFixed(1) : '0',
-    })).sort((a, b) => b.value - a.value);
+      value: Math.max(0, value),
+      pct: total > 0 && value > 0 ? ((value / total) * 100).toFixed(1) : '0',
+    }))
+      .filter(x => x.value > 0)
+      .sort((a, b) => b.value - a.value);
   }, [items]);
   return (
     <ChartCard title="Participação Percentual por Família">

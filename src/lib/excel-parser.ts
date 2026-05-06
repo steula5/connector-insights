@@ -5,10 +5,20 @@ import { getFamily } from '@/types/sales';
 function parseBrNumber(val: unknown): number {
   if (typeof val === 'number') return val;
   if (typeof val === 'string') {
+    let s = val.trim();
+    let isNegative = false;
+    if (s.startsWith('(') && s.endsWith(')')) {
+      isNegative = true;
+      s = s.slice(1, -1).trim();
+    } else if (s.startsWith('-')) {
+      isNegative = true;
+      s = s.slice(1).trim();
+    }
     // Brazilian format: "1.234,56" → 1234.56
-    const cleaned = val.replace(/\./g, '').replace(',', '.');
+    const cleaned = s.replace(/\./g, '').replace(',', '.');
     const n = Number(cleaned);
-    return isNaN(n) ? 0 : n;
+    if (isNaN(n)) return 0;
+    return isNegative ? -n : n;
   }
   return 0;
 }
@@ -19,49 +29,136 @@ export function parseTotalDoMes(buffer: ArrayBuffer): Array<{ code: string; unit
   const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
   const results: Array<{ code: string; unit: string; qty: number }> = [];
 
+  console.log('Sheet names:', wb.SheetNames);
+  console.log('First 10 rows:', rows.slice(0, 10));
+
   // Find header row dynamically (look for "Código" or "UN" in columns)
   let startRow = 0;
+  let codeCol = 0;
+  let unitCol = 5;
+  let qtyCol = 7;
   for (let i = 0; i < Math.min(rows.length, 15); i++) {
     const row = rows[i];
     if (!row) continue;
-    const col0 = String(row[0] ?? '').trim().toLowerCase();
-    if (col0 === 'código' || col0 === 'codigo') {
-      startRow = i + 1;
-      break;
+    for (let j = 0; j < row.length; j++) {
+      const cell = String(row[j] ?? '').trim().toLowerCase();
+      if (cell === 'código' || cell === 'codigo') {
+        startRow = i + 1;
+        codeCol = j;
+      } else if (cell === 'un') {
+        unitCol = j;
+      } else if (cell === 'quantidade' || cell === 'qtd' || cell === 'qty') {
+        qtyCol = j;
+      }
+    }
+    if (startRow > 0) break;
+  }
+  // If no "Código" found, look for "UN" to find unit column
+  if (startRow === 0) {
+    for (let i = 0; i < Math.min(rows.length, 15); i++) {
+      const row = rows[i];
+      if (!row) continue;
+      for (let j = 0; j < row.length; j++) {
+        const cell = String(row[j] ?? '').trim().toLowerCase();
+        if (cell === 'un') {
+          unitCol = j;
+          startRow = i + 1;
+          break;
+        }
+      }
+      if (startRow > 0) break;
     }
   }
   // Fallback: start at row 4 if no header found
   if (startRow === 0) startRow = 4;
 
+  console.log('Start row:', startRow, 'codeCol:', codeCol, 'unitCol:', unitCol, 'qtyCol:', qtyCol);
+
+  console.log('Start row:', startRow);
+
   for (let i = startRow; i < rows.length; i++) {
     const row = rows[i];
     if (!row) continue;
-    const code = String(row[0] ?? '').trim();
-    const unit = String(row[5] ?? '').trim().toUpperCase();
-    const qty = parseBrNumber(row[7]);
-    if (code && qty !== 0 && (unit === 'SC' || unit === 'UN')) {
+    const code = String(row[codeCol] ?? '').trim();
+    const unitRaw = String(row[unitCol] ?? '').trim().toUpperCase();
+    const unit = unitRaw === 'SC' ? 'SC' : 'UN';
+    const qty = parseBrNumber(row[qtyCol]);
+    console.log('Row', i, 'code:', code, 'unit:', unit, 'qty:', qty);
+    if (code && qty !== 0) {
       results.push({ code, unit, qty });
     }
   }
   return results;
 }
 
-export function parseCalculoMensal(buffer: ArrayBuffer): ConnectorRef[] {
+export type CalculoMensalParseResult = {
+  refs: ConnectorRef[];
+  totalRows: number;
+  scannedRows: number;
+  detectedCodeRows: number;
+  loadedRefs: number;
+};
+
+export function parseCalculoMensal(buffer: ArrayBuffer): CalculoMensalParseResult {
   const wb = XLSX.read(buffer, { type: 'array' });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
   const results: ConnectorRef[] = [];
 
-  for (let i = 1; i < rows.length; i++) {
+  let startRow = 1;
+  let codeCol = 1;
+  let qtyCol = 2;
+  const codeHeaders = ['código', 'codigo', 'cod', 'referencia', 'referência', 'sku'];
+  const qtyHeaders = ['qtd', 'quantidade', 'qty', 'qty/bag', 'qtyp/bag', 'qnt', 'qnt/bag'];
+
+  for (let i = 0; i < Math.min(rows.length, 20); i++) {
     const row = rows[i];
     if (!row) continue;
-    const code = String(row[1] ?? '').trim();
-    const qtyPerBag = parseBrNumber(row[2]);
+    let foundHeader = false;
+
+    for (let j = 0; j < row.length; j++) {
+      const cell = String(row[j] ?? '').trim().toLowerCase();
+      if (codeHeaders.includes(cell)) {
+        codeCol = j;
+        foundHeader = true;
+      }
+      if (qtyHeaders.includes(cell)) {
+        qtyCol = j;
+        foundHeader = true;
+      }
+    }
+
+    if (foundHeader) {
+      startRow = i + 1;
+      break;
+    }
+  }
+
+  console.log('parseCalculoMensal - sheet names:', wb.SheetNames);
+  console.log('parseCalculoMensal - total rows:', rows.length, 'startRow:', startRow, 'codeCol:', codeCol, 'qtyCol:', qtyCol);
+
+  let scannedRows = 0;
+  let detectedRows = 0;
+  for (let i = startRow; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row) continue;
+    scannedRows += 1;
+    const code = String(row[codeCol] ?? '').trim();
+    const qtyPerBag = parseBrNumber(row[qtyCol]);
+    if (code) detectedRows += 1;
     if (code && qtyPerBag > 0) {
       results.push({ code, qtyPerBag });
     }
   }
-  return results;
+
+  console.log('parseCalculoMensal - scannedRows:', scannedRows, 'detectedCodeRows:', detectedRows, 'loadedRefs:', results.length);
+  return {
+    refs: results,
+    totalRows: rows.length,
+    scannedRows,
+    detectedCodeRows: detectedRows,
+    loadedRefs: results.length,
+  };
 }
 
 export function crossReference(
