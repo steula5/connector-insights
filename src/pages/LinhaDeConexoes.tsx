@@ -11,7 +11,6 @@ import {
   parseLinhaVendas, 
   parseLinhaCodes, 
   processLinhaConexoes, 
-  DEFAULT_LINHA_CODES,
   generateLinhaCodesTemplate
 } from '@/lib/linha-conexoes-parser';
 import { exportToExcel } from '@/lib/excel-parser';
@@ -45,7 +44,7 @@ export default function LinhaDeConexoes() {
   });
   
   const [sales, setSales] = useState<Array<{ code: string; unit: string; qty: number }>>([]);
-  const [targetCodes, setTargetCodes] = useState<string[]>(DEFAULT_LINHA_CODES);
+  const [targetCodes, setTargetCodes] = useState<string[]>([]);
   const [overrides, setOverrides] = useState<Record<string, number>>({});
   
   const [items, setItems] = useState<SaleItem[]>(() => {
@@ -234,16 +233,16 @@ export default function LinhaDeConexoes() {
               <div className="mx-auto max-w-2xl space-y-6">
                 <div>
                   <h2 className="text-xl font-bold">Upload de Dados</h2>
-                  <p className="text-sm text-muted-foreground">Carregue o Relatório de Vendas (Obrigatório) e a lista de Códigos (Opcional).</p>
+                  <p className="text-sm text-muted-foreground">Carregue o Relatório de Vendas (Obrigatório) e a lista de Códigos (Obrigatório).</p>
                 </div>
                 
-                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 mb-6 flex justify-between items-center">
+                <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 mb-6 flex justify-between items-center">
                   <div>
-                    <h3 className="font-bold text-sm text-emerald-700 dark:text-emerald-400">Padrões de Códigos</h3>
-                    <p className="text-xs text-emerald-600/80 dark:text-emerald-400/80">O sistema já possui {targetCodes.length} códigos padrões pré-carregados. Se desejar alterá-los, baixe a planilha modelo, modifique e faça o upload abaixo.</p>
+                    <h3 className="font-bold text-sm text-blue-700 dark:text-blue-400">Instruções de Códigos</h3>
+                    <p className="text-xs text-blue-600/80 dark:text-blue-400/80">Baixe a planilha modelo abaixo, insira todos os códigos que deseja somar na **Coluna A** e faça o upload.</p>
                   </div>
                   <Button size="sm" variant="outline" className="shrink-0" onClick={generateLinhaCodesTemplate}>
-                    <FileSpreadsheet className="h-4 w-4 mr-2 text-emerald-600" />
+                    <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-600" />
                     Baixar Modelo
                   </Button>
                 </div>
@@ -251,17 +250,19 @@ export default function LinhaDeConexoes() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <FileUpload
                     label="Relatório de Vendas"
-                    description="Planilha exportada do sistema (.xlsx). Obrigatório para calcular a soma."
+                    description="Planilha (.xlsx) com as vendas do período."
                     onFile={handleSalesFile}
                   />
                   <FileUpload
-                    label="Lista de Códigos (Opcional)"
-                    description="Faça upload apenas se você alterou a planilha Modelo de Códigos."
+                    label="Lista de Códigos (Obrigatório)"
+                    description="Planilha (.xlsx) com a lista de códigos na Coluna A."
                     onFile={handleCodesFile}
                   />
                 </div>
                 
-                {sales.length > 0 && <p className="text-sm text-emerald-600 font-semibold">✓ {sales.length} vendas processadas com os {targetCodes.length} códigos padrão!</p>}
+                {sales.length > 0 && targetCodes.length > 0 && <p className="text-sm text-emerald-600 font-semibold">✓ {sales.length} vendas processadas com os {targetCodes.length} códigos fornecidos!</p>}
+                {sales.length > 0 && targetCodes.length === 0 && <p className="text-sm text-amber-600 font-semibold">⚠ Relatório carregado, mas aguardando Lista de Códigos...</p>}
+                {sales.length === 0 && targetCodes.length > 0 && <p className="text-sm text-amber-600 font-semibold">⚠ Lista de códigos carregada, mas aguardando Relatório de Vendas...</p>}
               </div>
             )}
 
@@ -414,7 +415,11 @@ export default function LinhaDeConexoes() {
             {!items.length && section !== 'upload' && section !== 'history' && (
               <div className="flex flex-col items-center gap-3 py-20">
                 <Upload className="h-10 w-10 text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground">Faça upload da planilha de vendas para visualizar os dados.</p>
+                <p className="text-sm text-muted-foreground">
+                  {!sales.length && !targetCodes.length ? "Faça upload dos arquivos para visualizar os dados." : 
+                   !sales.length ? "Aguardando Relatório de Vendas..." : 
+                   "Aguardando Lista de Códigos..."}
+                </p>
                 <Button size="sm" variant="outline" onClick={() => setSection('upload')}>Ir para Upload</Button>
               </div>
             )}

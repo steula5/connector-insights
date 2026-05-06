@@ -31,7 +31,31 @@ export interface EspiralItem {
   totalLength: number;   // metragem total vendida
 }
 
-export function parseEspirais(buffer: ArrayBuffer): EspiralItem[] {
+export function parseEspiraisCodes(buffer: ArrayBuffer): string[] {
+  const wb = XLSX.read(buffer, { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
+  const codes: string[] = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || !row[0]) continue;
+    const cell = String(row[0]).trim();
+    if (cell.toLowerCase() === 'código' || cell.toLowerCase() === 'codigo') continue;
+    if (cell) codes.push(cell);
+  }
+  return codes;
+}
+
+export function generateEspiraisCodesTemplate(): void {
+  const data = [['Código']];
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Padrões');
+  XLSX.writeFile(wb, 'padroes-espirais-tubos.xlsx');
+}
+
+export function parseEspirais(buffer: ArrayBuffer, targetCodes: string[] = []): EspiralItem[] {
   const wb = XLSX.read(buffer, { type: 'array' });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
@@ -75,15 +99,8 @@ export function parseEspirais(buffer: ArrayBuffer): EspiralItem[] {
     
     if (!code || qty === 0) continue;
     
-    // Ignorar códigos específicos que dão falso positivo
-    if (
-      code === 'MS 17-P01' || 
-      code === 'MS 17-P02' ||
-      code === 'MS 4-P35' ||
-      code === 'MS 4-P35-A' ||
-      code === 'MS 15-P35' ||
-      code === 'MS 15-P35-A'
-    ) continue;
+    // Se targetCodes estiver preenchido, filtrar apenas os que estão na lista
+    if (targetCodes.length > 0 && !targetCodes.includes(code)) continue;
 
     let type: 'ESPIRAL' | 'TUBO PU' | 'OUTROS' = 'OUTROS';
     let lengthPerUnit = 0;
@@ -187,3 +204,4 @@ export function parseEspirais(buffer: ArrayBuffer): EspiralItem[] {
 
   return Array.from(aggregated.values()).sort((a, b) => b.totalLength - a.totalLength);
 }
+

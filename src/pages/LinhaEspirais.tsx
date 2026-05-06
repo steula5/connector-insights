@@ -7,7 +7,7 @@ import { SidebarProvider, SidebarTrigger, Sidebar, SidebarContent, SidebarGroup,
 import { KPICard } from '@/components/dashboard/KPICard';
 import { FileUpload } from '@/components/dashboard/FileUpload';
 import { MonthlyComparisonChart } from '@/components/dashboard/Charts';
-import { parseEspirais } from '@/lib/espirais-parser';
+import { parseEspirais, parseEspiraisCodes, generateEspiraisCodesTemplate } from '@/lib/espirais-parser';
 import { exportToExcel } from '@/lib/excel-parser';
 import { 
   loadEspiraisHistory, 
@@ -38,6 +38,8 @@ export default function LinhaEspirais() {
     return loadEspiraisHistory()[String(d.getFullYear())]?.[String(d.getMonth() + 1)] ? 'dashboard' : 'upload';
   });
   
+  const [salesBuffer, setSalesBuffer] = useState<ArrayBuffer | null>(null);
+  const [targetCodes, setTargetCodes] = useState<string[]>([]);
   const [items, setItems] = useState<EspiralItem[]>(() => {
     const d = new Date();
     const data = loadEspiraisHistory()[String(d.getFullYear())]?.[String(d.getMonth() + 1)];
@@ -49,13 +51,33 @@ export default function LinhaEspirais() {
   const [selectedMonth, setSelectedMonth] = useState(String(new Date().getMonth() + 1));
 
   const handleSalesFile = useCallback((buf: ArrayBuffer) => {
+    setSalesBuffer(buf);
+    if (targetCodes.length > 0) {
+      try {
+        const parsed = parseEspirais(buf, targetCodes);
+        setItems(parsed);
+        toast.success(`${parsed.length} produtos rastreados carregados`);
+        setSection('dashboard');
+      } catch { toast.error('Erro ao ler arquivo de Vendas'); }
+    } else {
+      toast.info('Relatório de vendas carregado. Agora envie a lista de códigos.');
+    }
+  }, [targetCodes]);
+
+  const handleCodesFile = useCallback((buf: ArrayBuffer) => {
     try {
-      const parsed = parseEspirais(buf);
-      setItems(parsed);
-      toast.success(`${parsed.length} produtos rastreados (Espirais e Tubos PU) carregados`);
-      setSection('dashboard');
-    } catch { toast.error('Erro ao ler arquivo de Vendas'); }
-  }, []);
+      const codes = parseEspiraisCodes(buf);
+      setTargetCodes(codes);
+      if (salesBuffer) {
+        const parsed = parseEspirais(salesBuffer, codes);
+        setItems(parsed);
+        toast.success(`${codes.length} códigos carregados e dados processados`);
+        setSection('dashboard');
+      } else {
+        toast.success(`${codes.length} códigos carregados. Agora envie o relatório de vendas.`);
+      }
+    } catch { toast.error('Erro ao ler arquivo de Códigos'); }
+  }, [salesBuffer]);
 
   const handleLengthChange = useCallback((code: string, newLength: number) => {
     setItems(prev => {
@@ -209,26 +231,36 @@ export default function LinhaEspirais() {
               <div className="mx-auto max-w-2xl space-y-6">
                 <div>
                   <h2 className="text-xl font-bold">Upload de Dados</h2>
-                  <p className="text-sm text-muted-foreground">Carregue o Relatório de Vendas mensal.</p>
+                  <p className="text-sm text-muted-foreground">Carregue o Relatório de Vendas (Obrigatório) e a lista de Códigos (Obrigatório).</p>
                 </div>
                 
-                <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-4 mb-6">
-                  <h3 className="font-bold text-sm text-orange-700 dark:text-orange-400">Regras de Extração</h3>
-                  <ul className="text-xs text-orange-600/80 dark:text-orange-400/80 list-disc ml-5 mt-2 space-y-1">
-                    <li><strong>Espirais:</strong> A metragem será lida da Descrição, capturando os números antes do "M".</li>
-                    <li><strong>Tubos PU:</strong> A metragem será lida do próprio Código, capturando o número após o último hífen.</li>
-                  </ul>
+                <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-4 mb-6 flex justify-between items-center">
+                  <div>
+                    <h3 className="font-bold text-sm text-orange-700 dark:text-orange-400">Instruções de Códigos</h3>
+                    <p className="text-xs text-orange-600/80 dark:text-orange-400/80">Baixe a planilha modelo abaixo, insira todos os códigos de Espirais ou Tubos na **Coluna A** e faça o upload.</p>
+                  </div>
+                  <Button size="sm" variant="outline" className="shrink-0" onClick={generateEspiraisCodesTemplate}>
+                    <Download className="h-4 w-4 mr-2 text-orange-600" />
+                    Baixar Modelo
+                  </Button>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-1">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <FileUpload
                     label="Relatório de Vendas"
-                    description="Planilha exportada do sistema (.xlsx)."
+                    description="Planilha (.xlsx) com as vendas do período."
                     onFile={handleSalesFile}
+                  />
+                  <FileUpload
+                    label="Lista de Códigos (Obrigatório)"
+                    description="Planilha (.xlsx) com a lista de códigos na Coluna A."
+                    onFile={handleCodesFile}
                   />
                 </div>
                 
-                {items.length > 0 && <p className="text-sm text-orange-600 font-semibold">✓ {items.length} itens (espirais e tubos) identificados!</p>}
+                {items.length > 0 && <p className="text-sm text-orange-600 font-semibold">✓ {items.length} itens identificados com os códigos fornecidos!</p>}
+                {salesBuffer && targetCodes.length === 0 && <p className="text-sm text-amber-600 font-semibold">⚠ Relatório carregado, mas aguardando Lista de Códigos...</p>}
+                {!salesBuffer && targetCodes.length > 0 && <p className="text-sm text-amber-600 font-semibold">⚠ Lista de códigos carregada, mas aguardando Relatório de Vendas...</p>}
               </div>
             )}
 
@@ -406,7 +438,11 @@ export default function LinhaEspirais() {
             {!items.length && section !== 'upload' && section !== 'history' && (
               <div className="flex flex-col items-center gap-3 py-20">
                 <Upload className="h-10 w-10 text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground">Faça upload da planilha de vendas para visualizar os dados.</p>
+                <p className="text-sm text-muted-foreground">
+                  {!salesBuffer && !targetCodes.length ? "Faça upload dos arquivos para visualizar os dados." : 
+                   !salesBuffer ? "Aguardando Relatório de Vendas..." : 
+                   "Aguardando Lista de Códigos..."}
+                </p>
                 <Button size="sm" variant="outline" onClick={() => setSection('upload')}>Ir para Upload</Button>
               </div>
             )}

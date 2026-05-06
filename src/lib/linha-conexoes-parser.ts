@@ -2,17 +2,8 @@ import * as XLSX from 'xlsx';
 import type { SaleItem } from '@/types/sales';
 import { getFamily } from '@/types/sales';
 
-export const DEFAULT_LINHA_CODES = [
-  '340', '336', '337', '338', '339',
-  'U 1/4', 'U 5/16', 'U 3/8', 'U 1/2',
-  'EFMB 1/4', 'EFMB 5/16', 'EFMB 3/8', 'EFMB 1/2',
-  'EFMD 1/4', 'EFMD 5/16', 'EFMD 3/8', 'EFMD 1/2',
-  'EFFB 1/4', 'EFFB 5/16', 'EFFB 3/8',
-  'UC 1/2', 'ECD 1/2', 'N 1/4', 'N 1/2',
-  'NRDB', 'BRDB', '377',
-  'TEE 1/4', 'TEE 5/16', 'TEE 3/8', 'TEE 1/2',
-  'EG 1/4', 'EG 5/16', 'EG 3/8'
-];
+export const DEFAULT_LINHA_CODES: string[] = [];
+
 
 function parseBrNumber(val: unknown): number {
   if (typeof val === 'number') return val;
@@ -91,12 +82,12 @@ export function parseLinhaCodes(buffer: ArrayBuffer): string[] {
     if (cell) codes.push(cell);
   }
   
-  return codes.length > 0 ? codes : DEFAULT_LINHA_CODES;
+  return codes;
 }
 
 export function generateLinhaCodesTemplate(): void {
   const data = [['Código']];
-  DEFAULT_LINHA_CODES.forEach(code => data.push([code]));
+  // No default codes anymore
   
   const ws = XLSX.utils.aoa_to_sheet(data);
   const wb = XLSX.utils.book_new();
