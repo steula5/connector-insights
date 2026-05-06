@@ -76,7 +76,14 @@ export function parseEspirais(buffer: ArrayBuffer): EspiralItem[] {
     if (!code || qty === 0) continue;
     
     // Ignorar códigos específicos que dão falso positivo
-    if (code === 'MS 17-P01' || code === 'MS 17-P02') continue;
+    if (
+      code === 'MS 17-P01' || 
+      code === 'MS 17-P02' ||
+      code === 'MS 4-P35' ||
+      code === 'MS 4-P35-A' ||
+      code === 'MS 15-P35' ||
+      code === 'MS 15-P35-A'
+    ) continue;
 
     let type: 'ESPIRAL' | 'TUBO PU' | 'OUTROS' = 'OUTROS';
     let lengthPerUnit = 0;
