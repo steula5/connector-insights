@@ -45,7 +45,7 @@ export default function Home() {
       <header className="border-b bg-card/50 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-6 py-5">
           <div className="flex items-center gap-3">
-            <img src="/connector-insights/Logo.png" alt="Logo" className="h-10 w-auto object-contain" />
+            <img src="/connector-insights/logo.png" alt="Logo" className="h-10 w-auto object-contain" />
             <div>
               <h1 className="text-xl font-bold tracking-tight">Calculadora para Resumo de Vendas</h1>
               <p className="text-xs text-muted-foreground">Sistema de Gestão Interna</p>
