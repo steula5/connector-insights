@@ -15,8 +15,8 @@ const modules = [
   },
   {
     id: 'linha-conexoes',
-    title: 'Cálculo Linha de Conexões',
-    subtitle: 'Conexões Instantâneas',
+    title: 'Cálculo Linha de Conexões Convencionais',
+    subtitle: 'Conexões Convencionais',
     description: 'Soma rápida de quantidades de códigos padrões para conexões.',
     icon: Package,
     path: '/linhadeconexoes',
