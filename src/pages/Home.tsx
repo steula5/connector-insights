@@ -15,7 +15,7 @@ const modules = [
   },
   {
     id: 'linha-conexoes',
-    title: 'Linha de Conexões',
+    title: 'Cálculo Linha de Conexões',
     subtitle: 'Conexões Instantâneas',
     description: 'Soma rápida de quantidades de códigos padrões para conexões.',
     icon: Package,
@@ -26,8 +26,8 @@ const modules = [
   },
   {
     id: 'linha-espirais',
-    title: 'Linha de Espirais e Tubos PU',
-    subtitle: 'Em breve',
+    title: 'Cálculo Linha de Espirais e Tubos PU',
+    subtitle: 'Painel de Metragem',
     description: 'Painel focado no cálculo e relatório da linha de espirais e tubos de poliuretano.',
     icon: Package,
     path: '/linha-espirais',
