@@ -174,7 +174,7 @@ export default function LinhaDeConexoes() {
           <SidebarContent className="pt-4">
             <div className="mb-6 px-4">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 text-white text-xs font-bold">LC</div>
+                <img src="/Logo.png" alt="Logo" className="h-6 w-auto object-contain" />
                 <span className="text-sm font-bold text-sidebar-foreground group-data-[collapsible=icon]:hidden">Linha de Conexões</span>
               </div>
             </div>

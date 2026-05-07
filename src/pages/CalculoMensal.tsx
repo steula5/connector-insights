@@ -225,8 +225,8 @@ export default function Index() {
           <SidebarContent className="pt-4">
             <div className="mb-6 px-4">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-xs font-bold">CRV</div>
-                <span className="text-sm font-bold text-sidebar-foreground group-data-[collapsible=icon]:hidden">Calculadora para Resumo de Vendas</span>
+                <img src="/Logo.png" alt="Logo" className="h-6 w-auto object-contain" />
+                <span className="text-sm font-bold text-sidebar-foreground group-data-[collapsible=icon]:hidden">Conectores</span>
               </div>
             </div>
             <SidebarGroup>
@@ -254,8 +254,8 @@ export default function Index() {
         <div className="flex flex-1 flex-col">
           <header className="flex h-14 items-center gap-3 border-b px-4">
             <SidebarTrigger />
-            <h1 className="text-lg font-bold">Calculadora para Resumo de Vendas</h1>
-            <span className="text-xs text-muted-foreground">Dashboard de Vendas de Conectores</span>
+            <h1 className="text-lg font-bold">Calculadora</h1>
+            <span className="text-xs text-muted-foreground">Dashboard de Vendas</span>
             <div className="ml-auto flex items-center gap-2">
               <Select value={selectedMonth} onValueChange={(val) => {
                 setSelectedMonth(val);

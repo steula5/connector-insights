@@ -44,12 +44,12 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card/50 backdrop-blur-sm">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-6 py-5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-sm">
-            CRV
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">Calculadora para Resumo de Vendas</h1>
-            <p className="text-xs text-muted-foreground">Sistema de Gestão Interna</p>
+          <div className="flex items-center gap-3">
+            <img src="/Logo.png" alt="Logo" className="h-10 w-auto object-contain" />
+            <div>
+              <h1 className="text-xl font-bold tracking-tight">Calculadora para Resumo de Vendas</h1>
+              <p className="text-xs text-muted-foreground">Sistema de Gestão Interna</p>
+            </div>
           </div>
         </div>
       </header>
