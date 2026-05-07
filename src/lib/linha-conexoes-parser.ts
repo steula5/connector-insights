@@ -74,19 +74,35 @@ export function parseLinhaCodes(buffer: ArrayBuffer): string[] {
   const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
   const codes: string[] = [];
 
+  let codeCol = 2; // Padrão: Coluna C
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const row = rows[i];
+    if (!row) continue;
+    const found = row.findIndex(c => {
+      const s = String(c ?? '').trim().toLowerCase();
+      return s === 'código' || s === 'codigo';
+    });
+    if (found !== -1) {
+      codeCol = found;
+      break;
+    }
+  }
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    if (!row || !row[0]) continue;
-    const cell = String(row[0]).trim();
-    if (cell.toLowerCase() === 'código' || cell.toLowerCase() === 'codigo') continue;
-    if (cell) codes.push(cell);
+    if (!row) continue;
+    const cell = String(row[codeCol] ?? '').trim();
+    if (!cell || cell.toLowerCase() === 'código' || cell.toLowerCase() === 'codigo') continue;
+    codes.push(cell);
   }
+  
+  console.log(`Parsed ${codes.length} codes from column index ${codeCol}`);
   
   return codes;
 }
 
 export function generateLinhaCodesTemplate(): void {
-  const data = [['Código']];
+  const data = [['', '', 'Código']];
   // No default codes anymore
   
   const ws = XLSX.utils.aoa_to_sheet(data);

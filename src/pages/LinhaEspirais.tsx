@@ -237,7 +237,7 @@ export default function LinhaEspirais() {
                 <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-4 mb-6 flex justify-between items-center">
                   <div>
                     <h3 className="font-bold text-sm text-orange-700 dark:text-orange-400">Instruções de Códigos</h3>
-                    <p className="text-xs text-orange-600/80 dark:text-orange-400/80">Baixe a planilha modelo abaixo, insira todos os códigos de Espirais ou Tubos na **Coluna A** e faça o upload.</p>
+                    <p className="text-xs text-orange-600/80 dark:text-orange-400/80">Baixe a planilha modelo abaixo, insira todos os códigos de Espirais ou Tubos na **Coluna C** e faça o upload.</p>
                   </div>
                   <Button size="sm" variant="outline" className="shrink-0" onClick={generateEspiraisCodesTemplate}>
                     <Download className="h-4 w-4 mr-2 text-orange-600" />
@@ -253,7 +253,7 @@ export default function LinhaEspirais() {
                   />
                   <FileUpload
                     label="Lista de Códigos (Obrigatório)"
-                    description="Planilha (.xlsx) com a lista de códigos na Coluna A."
+                    description="Planilha (.xlsx) com a lista de códigos na Coluna C."
                     onFile={handleCodesFile}
                   />
                 </div>

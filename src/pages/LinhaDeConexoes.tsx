@@ -245,7 +245,7 @@ export default function LinhaDeConexoes() {
                 <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 mb-6 flex justify-between items-center">
                   <div>
                     <h3 className="font-bold text-sm text-blue-700 dark:text-blue-400">Instruções de Códigos</h3>
-                    <p className="text-xs text-blue-600/80 dark:text-blue-400/80">Baixe a planilha modelo abaixo, insira todos os códigos que deseja somar na **Coluna A** e faça o upload.</p>
+                    <p className="text-xs text-blue-600/80 dark:text-blue-400/80">Baixe a planilha modelo abaixo, insira todos os códigos que deseja somar na **Coluna C** e faça o upload.</p>
                   </div>
                   <Button size="sm" variant="outline" className="shrink-0" onClick={generateLinhaCodesTemplate}>
                     <FileSpreadsheet className="h-4 w-4 mr-2 text-blue-600" />
@@ -261,7 +261,7 @@ export default function LinhaDeConexoes() {
                   />
                   <FileUpload
                     label="Lista de Códigos (Obrigatório)"
-                    description="Planilha (.xlsx) com a lista de códigos na Coluna A."
+                    description="Planilha (.xlsx) com a lista de códigos na Coluna C."
                     onFile={handleCodesFile}
                   />
                 </div>

@@ -37,18 +37,34 @@ export function parseEspiraisCodes(buffer: ArrayBuffer): string[] {
   const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 });
   const codes: string[] = [];
 
+  let codeCol = 2; // Padrão: Coluna C
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const row = rows[i];
+    if (!row) continue;
+    const found = row.findIndex(c => {
+      const s = String(c ?? '').trim().toLowerCase();
+      return s === 'código' || s === 'codigo';
+    });
+    if (found !== -1) {
+      codeCol = found;
+      break;
+    }
+  }
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    if (!row || !row[0]) continue;
-    const cell = String(row[0]).trim();
-    if (cell.toLowerCase() === 'código' || cell.toLowerCase() === 'codigo') continue;
-    if (cell) codes.push(cell);
+    if (!row) continue;
+    const cell = String(row[codeCol] ?? '').trim();
+    if (!cell || cell.toLowerCase() === 'código' || cell.toLowerCase() === 'codigo') continue;
+    codes.push(cell);
   }
+  
+  console.log(`Parsed ${codes.length} espirais codes from column index ${codeCol}`);
   return codes;
 }
 
 export function generateEspiraisCodesTemplate(): void {
-  const data = [['Código']];
+  const data = [['', '', 'Código']];
   const ws = XLSX.utils.aoa_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Padrões');
@@ -176,7 +192,7 @@ export function parseEspirais(buffer: ArrayBuffer, targetCodes: string[] = []): 
       }
     }
 
-    if (type !== 'OUTROS') {
+    if (type !== 'OUTROS' || targetCodes.includes(code)) {
       results.push({
         code,
         description: desc,
@@ -202,6 +218,8 @@ export function parseEspirais(buffer: ArrayBuffer, targetCodes: string[] = []): 
     }
   }
 
-  return Array.from(aggregated.values()).sort((a, b) => b.totalLength - a.totalLength);
+  const resultList = Array.from(aggregated.values()).sort((a, b) => b.totalLength - a.totalLength);
+  console.log(`Matched ${resultList.length} items from sales report`);
+  return resultList;
 }
 
