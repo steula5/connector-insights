@@ -115,8 +115,8 @@ export function parseEspirais(buffer: ArrayBuffer, targetCodes: string[] = []): 
     
     if (!code || qty === 0) continue;
     
-    // Se targetCodes estiver preenchido, filtrar apenas os que estão na lista
-    if (targetCodes.length > 0 && !targetCodes.includes(code)) continue;
+    // Se targetCodes estiver preenchido, filtrar apenas os que estão na lista (case-insensitive)
+    if (targetCodes.length > 0 && !targetCodes.some(tc => tc.trim().toUpperCase() === code.toUpperCase())) continue;
 
     let type: 'ESPIRAL' | 'TUBO PU' | 'OUTROS' = 'OUTROS';
     let lengthPerUnit = 0;
@@ -127,32 +127,32 @@ export function parseEspirais(buffer: ArrayBuffer, targetCodes: string[] = []): 
       const isValidEspiral = (l: number) => validEspiralLengths.includes(l);
 
       // 1. Tubo PU: SPU 10-100 -> 100
-      let match = c.match(/^SPU\s+\d+\s*-\s*(\d+)/);
+      let match = c.match(/^SPU\s*\d+\s*-\s*(\d+)/i);
       if (match) return { type: 'TUBO PU', len: parseBrNumber(match[1]) };
 
       // 2. Espiral MS com 'D': MS 4-25D ou MS 4 -50D -> 25 / 10 = 2.5
-      match = c.match(/^MS\s+\d+\s*-\s*(\d+)D/);
+      match = c.match(/^MS\s*\d+\s*-\s*(\d+)D/i);
       if (match) {
         const len = parseBrNumber(match[1]) / 10;
         if (isValidEspiral(len)) return { type: 'ESPIRAL', len };
       }
 
       // 3. Espiral com 'B': B80 G-G ou B150 PU -> 80 / 10 = 8.0
-      match = c.match(/^B(\d+)\b/);
+      match = c.match(/^B(\d+)\b/i);
       if (match) {
         const len = parseBrNumber(match[1]) / 10;
         if (isValidEspiral(len)) return { type: 'ESPIRAL', len };
       }
 
       // 4. Espiral com número direto: 25 PU, 50 D-D -> 25 / 10 = 2.5
-      match = c.match(/^(\d+)\s+(?:PU|D-D|D-E|E-E)\b/);
+      match = c.match(/^(\d+)\s+(?:PU|D-D|D-E|E-E)\b/i);
       if (match) {
         const len = parseBrNumber(match[1]) / 10;
         if (isValidEspiral(len)) return { type: 'ESPIRAL', len };
       }
 
       // 5. Espiral MS com 'P': MS 4-P35 ou MS 15-P35-A -> 35 / 10 = 3.5
-      match = c.match(/^MS\s+\d+\s*-P(\d+)/);
+      match = c.match(/^MS\s*\d+[\s-]*P\s*(\d+)/i);
       if (match) {
         const len = parseBrNumber(match[1]) / 10;
         if (isValidEspiral(len)) return { type: 'ESPIRAL', len };

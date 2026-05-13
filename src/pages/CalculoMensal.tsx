@@ -225,7 +225,7 @@ export default function Index() {
           <SidebarContent className="pt-4">
             <div className="mb-6 px-4">
               <div className="flex items-center gap-2">
-                <img src="/connector-insights/logo.png" alt="Logo" className="h-6 w-auto object-contain" />
+                <img src="/connector-insights/Logo.png" alt="Logo" className="h-6 w-auto object-contain" />
                 <span className="text-sm font-bold text-sidebar-foreground group-data-[collapsible=icon]:hidden">Conectores</span>
               </div>
             </div>
@@ -314,11 +314,11 @@ export default function Index() {
               <div className="space-y-6">
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                   <KPICard title="Total UN" value={totalUN} icon={TrendingUp} trend={growth} />
-                  <KPICard 
-                    title="Devoluções" 
-                    value={totalReturns} 
-                    icon={ArrowDown} 
-                    subtitle={`${totalReturnedUN.toLocaleString('pt-BR')} UN devolvidos`} 
+                  <KPICard
+                    title="Devoluções"
+                    value={totalReturns}
+                    icon={ArrowDown}
+                    subtitle={`${totalReturnedUN.toLocaleString('pt-BR')} UN devolvidos`}
                     onClick={() => totalReturns > 0 && setIsReturnsModalOpen(true)}
                     className={totalReturns > 0 ? "border-danger/30 bg-danger/5" : ""}
                   />

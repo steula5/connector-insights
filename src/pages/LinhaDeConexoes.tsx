@@ -7,18 +7,18 @@ import { SidebarProvider, SidebarTrigger, Sidebar, SidebarContent, SidebarGroup,
 import { KPICard } from '@/components/dashboard/KPICard';
 import { FileUpload } from '@/components/dashboard/FileUpload';
 import { MonthlyComparisonChart } from '@/components/dashboard/Charts';
-import { 
-  parseLinhaVendas, 
-  parseLinhaCodes, 
-  processLinhaConexoes, 
+import {
+  parseLinhaVendas,
+  parseLinhaCodes,
+  processLinhaConexoes,
   generateLinhaCodesTemplate
 } from '@/lib/linha-conexoes-parser';
 import { exportToExcel } from '@/lib/excel-parser';
-import { 
-  loadLinhaHistory, 
-  saveLinhaMonthData, 
-  exportLinhaHistoryJSON, 
-  importLinhaHistoryJSON 
+import {
+  loadLinhaHistory,
+  saveLinhaMonthData,
+  exportLinhaHistoryJSON,
+  importLinhaHistoryJSON
 } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -42,7 +42,7 @@ export default function LinhaDeConexoes() {
     const d = new Date();
     return loadLinhaHistory()[String(d.getFullYear())]?.[String(d.getMonth() + 1)] ? 'dashboard' : 'upload';
   });
-  
+
   const [sales, setSales] = useState<Array<{ code: string; unit: string; qty: number }>>([]);
   const [targetCodes, setTargetCodes] = useState<string[]>([]);
   const [overrides, setOverrides] = useState<Record<string, number>>({});
@@ -53,7 +53,7 @@ export default function LinhaDeConexoes() {
     const data = loadLinhaHistory()[String(d.getFullYear())]?.[String(d.getMonth() + 1)];
     return data ? data.items : [];
   });
-  
+
   const [history, setHistory] = useState<HistoryData>(loadLinhaHistory);
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
   const [selectedMonth, setSelectedMonth] = useState(String(new Date().getMonth() + 1));
@@ -149,7 +149,7 @@ export default function LinhaDeConexoes() {
 
   const totalUN = useMemo(() => items.reduce((s, i) => s + i.totalUN, 0), [items]);
   const families = useMemo(() => [...new Set(items.map(i => i.family))].sort(), [items]);
-  
+
   // Encontrar itens com unidade diferente de UN para alerta
   const nonUnItems = useMemo(() => items.filter(i => i.unitOrigin !== 'UN' && i.unitOrigin !== ''), [items]);
 
@@ -174,7 +174,7 @@ export default function LinhaDeConexoes() {
           <SidebarContent className="pt-4">
             <div className="mb-6 px-4">
               <div className="flex items-center gap-2">
-                <img src="/connector-insights/logo.png" alt="Logo" className="h-6 w-auto object-contain" />
+                <img src="/connector-insights/Logo.png" alt="Logo" className="h-6 w-auto object-contain" />
                 <span className="text-sm font-bold text-sidebar-foreground group-data-[collapsible=icon]:hidden">Linha de Conexões</span>
               </div>
             </div>
@@ -241,7 +241,7 @@ export default function LinhaDeConexoes() {
                   <h2 className="text-xl font-bold">Upload de Dados</h2>
                   <p className="text-sm text-muted-foreground">Carregue o Relatório de Vendas (Obrigatório) e a lista de Códigos (Obrigatório).</p>
                 </div>
-                
+
                 <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 mb-6 flex justify-between items-center">
                   <div>
                     <h3 className="font-bold text-sm text-blue-700 dark:text-blue-400">Instruções de Códigos</h3>
@@ -265,7 +265,7 @@ export default function LinhaDeConexoes() {
                     onFile={handleCodesFile}
                   />
                 </div>
-                
+
                 {sales.length > 0 && targetCodes.length > 0 && <p className="text-sm text-emerald-600 font-semibold">✓ {sales.length} vendas processadas com os {targetCodes.length} códigos fornecidos!</p>}
                 {sales.length > 0 && targetCodes.length === 0 && <p className="text-sm text-amber-600 font-semibold">⚠ Relatório carregado, mas aguardando Lista de Códigos...</p>}
                 {sales.length === 0 && targetCodes.length > 0 && <p className="text-sm text-amber-600 font-semibold">⚠ Lista de códigos carregada, mas aguardando Relatório de Vendas...</p>}
@@ -283,14 +283,14 @@ export default function LinhaDeConexoes() {
                     </div>
                   </div>
                 )}
-              
+
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <KPICard title="Total de Peças (Soma)" value={totalUN} icon={TrendingUp} trend={growth} />
                   <KPICard title="Item Top" value={items[0]?.code || '—'} icon={Package} subtitle={items[0] ? `${items[0].totalUN.toLocaleString('pt-BR')} peças` : undefined} />
                   <KPICard title="Total Códigos Encontrados" value={items.filter(i => i.totalUN > 0).length} icon={Activity} subtitle={`de ${targetCodes.length} pesquisados`} />
                   <KPICard title="Famílias" value={families.length} icon={Package} />
                 </div>
-                
+
                 <div className="grid gap-4 lg:grid-cols-1">
                   <MonthlyComparisonChart history={history} year={selectedYear} />
                 </div>
@@ -302,7 +302,7 @@ export default function LinhaDeConexoes() {
                 <div className="flex justify-between items-center">
                   <h2 className="text-xl font-bold">Conferência e Ajuste Manual</h2>
                 </div>
-                
+
                 <div className="rounded-xl border bg-card overflow-hidden">
                   <table className="w-full text-sm text-left">
                     <thead className="bg-muted">
@@ -318,7 +318,7 @@ export default function LinhaDeConexoes() {
                       {items.map((item, i) => {
                         const isNonUn = item.unitOrigin !== 'UN' && item.unitOrigin !== '';
                         const hasSales = item.totalUN > 0;
-                        
+
                         return (
                           <tr key={item.code} className={`border-b transition-colors hover:bg-muted/30 ${!hasSales ? 'opacity-50' : ''} ${isNonUn ? 'bg-amber-500/5' : ''}`}>
                             <td className="p-3 text-muted-foreground">{i + 1}</td>
@@ -422,9 +422,9 @@ export default function LinhaDeConexoes() {
               <div className="flex flex-col items-center gap-3 py-20">
                 <Upload className="h-10 w-10 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground">
-                  {!sales.length && !targetCodes.length ? "Faça upload dos arquivos para visualizar os dados." : 
-                   !sales.length ? "Aguardando Relatório de Vendas..." : 
-                   "Aguardando Lista de Códigos..."}
+                  {!sales.length && !targetCodes.length ? "Faça upload dos arquivos para visualizar os dados." :
+                    !sales.length ? "Aguardando Relatório de Vendas..." :
+                      "Aguardando Lista de Códigos..."}
                 </p>
                 <Button size="sm" variant="outline" onClick={() => setSection('upload')}>Ir para Upload</Button>
               </div>

@@ -9,11 +9,11 @@ import { FileUpload } from '@/components/dashboard/FileUpload';
 import { MonthlyComparisonChart } from '@/components/dashboard/Charts';
 import { parseEspirais, parseEspiraisCodes, generateEspiraisCodesTemplate } from '@/lib/espirais-parser';
 import { exportToExcel } from '@/lib/excel-parser';
-import { 
-  loadEspiraisHistory, 
-  saveEspiraisMonthData, 
-  exportEspiraisHistoryJSON, 
-  importEspiraisHistoryJSON 
+import {
+  loadEspiraisHistory,
+  saveEspiraisMonthData,
+  exportEspiraisHistoryJSON,
+  importEspiraisHistoryJSON
 } from '@/lib/storage';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -37,7 +37,7 @@ export default function LinhaEspirais() {
     const d = new Date();
     return loadEspiraisHistory()[String(d.getFullYear())]?.[String(d.getMonth() + 1)] ? 'dashboard' : 'upload';
   });
-  
+
   const [salesBuffer, setSalesBuffer] = useState<ArrayBuffer | null>(null);
   const [targetCodes, setTargetCodes] = useState<string[]>([]);
   const [items, setItems] = useState<EspiralItem[]>(() => {
@@ -45,7 +45,7 @@ export default function LinhaEspirais() {
     const data = loadEspiraisHistory()[String(d.getFullYear())]?.[String(d.getMonth() + 1)];
     return data ? data.items : [];
   });
-  
+
   const [history, setHistory] = useState<EspiraisHistoryData>(loadEspiraisHistory);
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
   const [selectedMonth, setSelectedMonth] = useState(String(new Date().getMonth() + 1));
@@ -141,7 +141,7 @@ export default function LinhaEspirais() {
   const totalMeters = useMemo(() => items.reduce((s, i) => s + i.totalLength, 0), [items]);
   const totalEspirais = useMemo(() => items.filter(i => i.type === 'ESPIRAL').reduce((s, i) => s + i.totalLength, 0), [items]);
   const totalTubos = useMemo(() => items.filter(i => i.type === 'TUBO PU').reduce((s, i) => s + i.totalLength, 0), [items]);
-  
+
   // Itens com metragem não detectada
   const undefinedLengthItems = useMemo(() => items.filter(i => i.lengthPerUnit === 0), [items]);
 
@@ -166,7 +166,7 @@ export default function LinhaEspirais() {
           <SidebarContent className="pt-4">
             <div className="mb-6 px-4">
               <div className="flex items-center gap-2">
-                <img src="/connector-insights/logo.png" alt="Logo" className="h-6 w-auto object-contain" />
+                <img src="/connector-insights/Logo.png" alt="Logo" className="h-6 w-auto object-contain" />
                 <span className="text-sm font-bold text-sidebar-foreground group-data-[collapsible=icon]:hidden">Espirais e Tubos</span>
               </div>
             </div>
@@ -233,7 +233,7 @@ export default function LinhaEspirais() {
                   <h2 className="text-xl font-bold">Upload de Dados</h2>
                   <p className="text-sm text-muted-foreground">Carregue o Relatório de Vendas (Obrigatório) e a lista de Códigos (Obrigatório).</p>
                 </div>
-                
+
                 <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 p-4 mb-6 flex justify-between items-center">
                   <div>
                     <h3 className="font-bold text-sm text-orange-700 dark:text-orange-400">Instruções de Códigos</h3>
@@ -257,7 +257,7 @@ export default function LinhaEspirais() {
                     onFile={handleCodesFile}
                   />
                 </div>
-                
+
                 {items.length > 0 && <p className="text-sm text-orange-600 font-semibold">✓ {items.length} itens identificados com os códigos fornecidos!</p>}
                 {salesBuffer && targetCodes.length === 0 && <p className="text-sm text-amber-600 font-semibold">⚠ Relatório carregado, mas aguardando Lista de Códigos...</p>}
                 {!salesBuffer && targetCodes.length > 0 && <p className="text-sm text-amber-600 font-semibold">⚠ Lista de códigos carregada, mas aguardando Relatório de Vendas...</p>}
@@ -272,33 +272,33 @@ export default function LinhaEspirais() {
                     <p className="text-xs text-amber-600/80">Foram encontrados {undefinedLengthItems.length} itens onde a metragem automática falhou. Vá para "Relatório" para revisar.</p>
                   </div>
                 )}
-              
+
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   <KPICard title="Total (Metros)" value={totalMeters} icon={TrendingUp} trend={growth} />
                   <KPICard title="Metros (Espirais)" value={totalEspirais} icon={Package} />
                   <KPICard title="Metros (Tubos PU)" value={totalTubos} icon={Package} />
                   <KPICard title="Item Top" value={items[0]?.code || '—'} icon={Activity} subtitle={items[0] ? `${items[0].totalLength.toLocaleString('pt-BR')} metros` : undefined} />
                 </div>
-                
+
                 <div className="grid gap-4 lg:grid-cols-1">
                   {/* Reuse the MonthlyComparisonChart by adapting history data slightly if necessary, or assuming it expects totalUN -> wait! 
                       MonthlyComparisonChart expects 'totalUN'. Let's check how it reads it: it reads item.totalUN. 
                       Since our items use totalLength, maybe the chart won't render points correctly unless we map it. 
                       Actually, let's remap it for the chart so it doesn't break! 
                    */}
-                  <MonthlyComparisonChart 
+                  <MonthlyComparisonChart
                     history={Object.fromEntries(
                       Object.entries(history).map(([y, mData]) => [
-                        y, 
+                        y,
                         Object.fromEntries(
                           Object.entries(mData).map(([m, data]) => [
-                            m, 
+                            m,
                             { ...data, totalUN: data.totalLength } // mock totalUN for the chart
                           ])
                         )
                       ])
-                    )} 
-                    year={selectedYear} 
+                    )}
+                    year={selectedYear}
                   />
                 </div>
               </div>
@@ -309,7 +309,7 @@ export default function LinhaEspirais() {
                 <div className="flex justify-between items-center">
                   <h2 className="text-xl font-bold">Conferência de Metragens</h2>
                 </div>
-                
+
                 <div className="rounded-xl border bg-card overflow-hidden">
                   <table className="w-full text-sm text-left">
                     <thead className="bg-muted">
@@ -326,7 +326,7 @@ export default function LinhaEspirais() {
                     <tbody>
                       {items.map((item, i) => {
                         const isUndefined = item.lengthPerUnit === 0;
-                        
+
                         return (
                           <tr key={item.code} className={`border-b transition-colors hover:bg-muted/30 ${isUndefined ? 'bg-amber-500/5' : ''}`}>
                             <td className="p-3 text-muted-foreground">{i + 1}</td>
@@ -423,7 +423,7 @@ export default function LinhaEspirais() {
                       qtyPerBag: i.lengthPerUnit,
                       totalUN: i.totalLength,
                       family: i.type,
-                    })), 
+                    })),
                     `espirais-tubos-${selectedYear}-${selectedMonth}.xlsx`
                   )}>
                     <Download className="h-4 w-4 text-orange-600" /> Exportar Excel (.xlsx)
@@ -439,9 +439,9 @@ export default function LinhaEspirais() {
               <div className="flex flex-col items-center gap-3 py-20">
                 <Upload className="h-10 w-10 text-muted-foreground/40" />
                 <p className="text-sm text-muted-foreground">
-                  {!salesBuffer && !targetCodes.length ? "Faça upload dos arquivos para visualizar os dados." : 
-                   !salesBuffer ? "Aguardando Relatório de Vendas..." : 
-                   "Aguardando Lista de Códigos..."}
+                  {!salesBuffer && !targetCodes.length ? "Faça upload dos arquivos para visualizar os dados." :
+                    !salesBuffer ? "Aguardando Relatório de Vendas..." :
+                      "Aguardando Lista de Códigos..."}
                 </p>
                 <Button size="sm" variant="outline" onClick={() => setSection('upload')}>Ir para Upload</Button>
               </div>
